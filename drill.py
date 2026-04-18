@@ -16,78 +16,90 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 
 def split_data(df, target_col="churned", test_size=0.2, random_state=42):
-    """Split a DataFrame into train and test sets with stratification.
-
-    Args:
-        df: DataFrame with features and target column.
-        target_col: Name of the target column.
-        test_size: Fraction of data to use for testing.
-        random_state: Random seed for reproducibility.
-
-    Returns:
-        Tuple of (X_train, X_test, y_train, y_test).
     """
-    # TODO: Separate features (X) and target (y), then split with stratification
-    pass
+    Task 1: Split a DataFrame into train and test sets with stratification.
+    """
+    # فصل الميزات (X) عن عمود الهدف (y)
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+
+    # التقسيم مع ضمان توازن الفئات (stratify=y) بنسبة 80/20
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state, stratify=y
+    )
+    return X_train, X_test, y_train, y_test
 
 
 def compute_classification_metrics(y_true, y_pred):
-    """Compute classification metrics from true and predicted labels.
-
-    Args:
-        y_true: Array of true labels (0 or 1).
-        y_pred: Array of predicted labels (0 or 1).
-
-    Returns:
-        Dictionary with keys: 'accuracy', 'precision', 'recall', 'f1'.
-        Values are floats.
     """
-    # TODO: Compute all four metrics using scikit-learn functions
-    pass
+    Task 2: Compute classification metrics from true and predicted labels.
+    """
+    # حساب المقاييس الأربعة المطلوبة في قاموس
+    metrics = {
+        'accuracy': float(accuracy_score(y_true, y_pred)),
+        'precision': float(precision_score(y_true, y_pred)),
+        'recall': float(recall_score(y_true, y_pred)),
+        'f1': float(f1_score(y_true, y_pred))
+    }
+    return metrics
 
 
 def run_cross_validation(X_train, y_train, n_folds=5, random_state=42):
-    """Run stratified k-fold cross-validation with LogisticRegression.
-
-    Args:
-        X_train: Training features (numeric only).
-        y_train: Training labels.
-        n_folds: Number of CV folds.
-        random_state: Random seed.
-
-    Returns:
-        Dictionary with keys: 'scores' (array of fold scores),
-        'mean' (float), 'std' (float).
     """
-    # TODO: Create a LogisticRegression model and run cross_val_score
-    pass
+    Task 3: Run stratified k-fold cross-validation with LogisticRegression.
+    """
+    # إنشاء نموذج Logistic Regression مع موازنة الفئات
+    model = LogisticRegression(
+        max_iter=1000, 
+        random_state=random_state, 
+        class_weight="balanced"
+    )
+    
+    # إعداد التقسيم الطبقي (Stratified) بخمس طيات
+    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_state)
+    
+    # تشغيل التحقق المتقاطع لحساب الدقة (accuracy)
+    scores = cross_val_score(model, X_train, y_train, cv=skf, scoring='accuracy')
+    
+    # تجميع النتائج المطلوبة: القائمة، المتوسط، والانحراف المعياري
+    cv_results = {
+        'scores': scores,
+        'mean': float(np.mean(scores)),
+        'std': float(np.std(scores))
+    }
+    return cv_results
 
 
 if __name__ == "__main__":
     # Load data
-    df = pd.read_csv("data/telecom_churn.csv")
-    print(f"Loaded {len(df)} rows")
+    try:
+        df = pd.read_csv("data/telecom_churn.csv")
+        print(f"Loaded {len(df)} rows")
 
-    # Task 1: Split
-    numeric_cols = ["tenure", "monthly_charges", "total_charges",
-                    "num_support_calls", "senior_citizen", "has_partner",
-                    "has_dependents"]
-    df_numeric = df[numeric_cols + ["churned"]]
+        # Task 1: Split
+        numeric_cols = ["tenure", "monthly_charges", "total_charges",
+                        "num_support_calls", "senior_citizen", "has_partner",
+                        "has_dependents"]
+        df_numeric = df[numeric_cols + ["churned"]]
 
-    result = split_data(df_numeric)
-    if result is not None:
-        X_train, X_test, y_train, y_test = result
-        print(f"Train: {len(X_train)}, Test: {len(X_test)}")
+        result = split_data(df_numeric)
+        if result is not None:
+            X_train, X_test, y_train, y_test = result
+            print(f"Train: {len(X_train)}, Test: {len(X_test)}")
 
-        # Task 2: Metrics
-        model = LogisticRegression(random_state=42, max_iter=1000, class_weight="balanced")
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        metrics = compute_classification_metrics(y_test, y_pred)
-        if metrics:
-            print(f"Metrics: {metrics}")
+            # Task 2: Metrics
+            # نستخدم class_weight="balanced" هنا أيضاً لمطابقة المهمة 3
+            model = LogisticRegression(random_state=42, max_iter=1000, class_weight="balanced")
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            metrics = compute_classification_metrics(y_test, y_pred)
+            if metrics:
+                print(f"Metrics: {metrics}")
 
-        # Task 3: Cross-validation
-        cv_results = run_cross_validation(X_train, y_train)
-        if cv_results:
-            print(f"CV: {cv_results['mean']:.3f} +/- {cv_results['std']:.3f}")
+            # Task 3: Cross-validation
+            cv_results = run_cross_validation(X_train, y_train)
+            if cv_results:
+                print(f"CV: {cv_results['mean']:.3f} +/- {cv_results['std']:.3f}")
+                
+    except FileNotFoundError:
+        print("Error: Make sure 'data/telecom_churn.csv' exists.")
